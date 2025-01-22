@@ -35,23 +35,28 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	FVector End = Start + GetForwardVector() * MaxGrabDistance; // Start + (GetForwardVector() * MaxGrabDistance)
 	DrawDebugLine(GetWorld(), Start, End, FColor::Red);
 
-	float Damage;					//1. 값을 받지 못하고 바로 함수로 전달된 변수가 보이면 아웃 매개변수가 아닐지 의심
-	if (HasDamage(Damage))
+
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(GrabRadius);
+	FHitResult HitResult;
+	bool HasHit = GetWorld()->SweepSingleByChannel(
+	HitResult, 
+	Start, End, 
+	FQuat::Identity, 
+	ECC_GameTraceChannel2,
+	Sphere
+	);
+
+	if(HasHit)
 	{
-		PrintDamage(Damage);
+		AActor* HitActor = HitResult.GetActor();
+		UE_LOG(LogTemp, Display, TEXT("Hitted Actor: %s"), *HitActor->GetActorNameOrLabel());
 	}
+	else
+	{
+		UE_LOG(LogTemp, Display, TEXT("No Actor Hit"));
+	}
+	
 	
 }
 
-void UGrabber::PrintDamage(const float& Damage)
-{
-	//Damage = 2;
-	UE_LOG(LogTemp, Display, TEXT("Damage: %f"), Damage);
-}
 
-bool UGrabber:: HasDamage(float& OutDamage) 		//2. 참조(&)가 매개변수인데 const가 앞에 없다면 아웃매개변수일 수 있다
-													//3. 변수나 매개변수 이름이 Out으로 시작하면 아웃매개변수 의심
-{
-	OutDamage = 5;
-	return true;
-}
