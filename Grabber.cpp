@@ -69,23 +69,8 @@ void UGrabber::Grab()
 		return;															//해당 컴포넌트가 없을 시 그냥 반환
 	}
 
-	FVector Start = GetComponentLocation();								//시작 위치: 현재 컴포넌트의 위치
-	FVector End = Start + GetForwardVector() * MaxGrabDistance; 		// Start + (GetForwardVector() * MaxGrabDistance): Start에서 GetForwardVector()방향으로 MaxGrabDistance만큼 떨어진 위치
-	DrawDebugLine(GetWorld(), Start, End, FColor::Red);					//빨간색으로 트레이스 선을 보여줌
-
-	DrawDebugSphere(GetWorld(), End, 10, 10, FColor::Blue, false, 5);	//파란색으로 트레이스 구체를 보여줌
-
-	FCollisionShape Sphere = FCollisionShape::MakeSphere(GrabRadius);	//Grabradius 크기의 구체 생성
 	FHitResult HitResult;
-
-	bool HasHit = GetWorld()->SweepSingleByChannel(						//HitResult에 Start부터 End까지 충돌 정보를 저장. HasHit에는 bool로 충돌의 유무 저장
-	HitResult, 
-	Start, End, 
-	FQuat::Identity, 
-	ECC_GameTraceChannel2,
-	Sphere
-	);
-
+	bool HasHit = GetGrabbableInReach(HitResult);
 	if(HasHit)															//충돌한 경우(물체가 감지)
 	{
 		UPrimitiveComponent* HitComponent = HitResult.GetComponent();	//충돌한 컴포넌트 가져오기
@@ -110,4 +95,24 @@ UPhysicsHandleComponent* UGrabber::GetPhysicsHandle() const
 	}
 	
 	return Result;
+}
+
+
+bool UGrabber::GetGrabbableInReach(FHitResult& OutHitResult) const		//
+{
+	FVector Start = GetComponentLocation();								//시작 위치: 현재 컴포넌트의 위치
+	FVector End = Start + GetForwardVector() * MaxGrabDistance; 		// Start + (GetForwardVector() * MaxGrabDistance): Start에서 GetForwardVector()방향으로 MaxGrabDistance만큼 떨어진 위치
+	DrawDebugLine(GetWorld(), Start, End, FColor::Red);					//빨간색으로 트레이스 선을 보여줌
+	DrawDebugSphere(GetWorld(), End, 10, 10, FColor::Blue, false, 5);	//파란색으로 트레이스 구체를 보여줌
+
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(GrabRadius);	//Grabradius 크기의 구체 생성
+	
+
+	return GetWorld()->SweepSingleByChannel(						//아웃 매개변수인 OutHitResult에 Start부터 End까지 충돌 정보를 저장하고 SweepSingleByChannel에서 호출된 bool값 리턴
+	OutHitResult, 
+	Start, End, 
+	FQuat::Identity, 
+	ECC_GameTraceChannel2,
+	Sphere
+	);
 }
