@@ -31,12 +31,8 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 
 
 	UPhysicsHandleComponent* PhysicsHandle = GetPhysicsHandle();
-	if(PhysicsHandle == nullptr)
-	{
-		return;
-	}
 	
-	if(PhysicsHandle->GetGrabbedComponent() != nullptr)
+	if(PhysicsHandle && PhysicsHandle->GetGrabbedComponent() != nullptr)
 	{
 		FVector TargetLocation = GetComponentLocation() + GetForwardVector() * HoldDistance;
 		PhysicsHandle->SetTargetLocationAndRotation(TargetLocation, GetComponentRotation());
@@ -49,16 +45,15 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 void UGrabber::Release()											
 {
 	UPhysicsHandleComponent* PhysicsHandle = GetPhysicsHandle();		//GetPhysicsHandle 호출하여 UPhysicsHandleComponent 가져오기
-	if(PhysicsHandle == nullptr)	
+	
+	if(PhysicsHandle && PhysicsHandle->GetGrabbedComponent())					//GetGrabbedComponent가 nullptr이 아닐시(잡은 물체가 있을 때)
 	{
-		return;															//해당 컴포넌트가 없을 시 그냥 반환
-	}
-
-	if(PhysicsHandle->GetGrabbedComponent() != nullptr)					//GetGrabbedComponent가 nullptr이 아닐시(잡은 물체가 있을 때)
-	{
-		PhysicsHandle->GetGrabbedComponent()->WakeAllRigidBodies();		//WakeAllRigidBodies()로 물체 깨우
+		AActor* GrabbedActor = PhysicsHandle->GetGrabbedComponent()->GetOwner();		//WakeAllRigidBodies()로 물체 깨우
+		GrabbedActor->Tags.Remove("Grabbed");
 		PhysicsHandle->ReleaseComponent();								//ReleaseComponent()로 물체를 놓음
+										
 	}
+										
 }
 
 void UGrabber::Grab()
@@ -74,7 +69,11 @@ void UGrabber::Grab()
 	if(HasHit)															//충돌한 경우(물체가 감지)
 	{
 		UPrimitiveComponent* HitComponent = HitResult.GetComponent();	//충돌한 컴포넌트 가져오기
+		HitComponent->SetSimulatePhysics(true);
 		HitComponent->WakeAllRigidBodies();								//충돌한 컴포넌트의 물체 깨우기
+		AActor* HitActor = HitResult.GetActor();
+		HitActor->Tags.Add("Grabbed");
+		HitActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);			
 		PhysicsHandle->GrabComponentAtLocationWithRotation(				//물체 잡는 함수 호출
 			HitComponent,												//잡을 물체
 			NAME_None,													//이름 지정 안함

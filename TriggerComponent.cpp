@@ -2,6 +2,7 @@
 
 
 #include "TriggerComponent.h"
+#include "GameFramework/Actor.h"
 
 UTriggerComponent::UTriggerComponent()
 {
@@ -22,35 +23,29 @@ void UTriggerComponent::BeginPlay()
 void UTriggerComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-    TArray<AActor*> Actors;                                             //AActor 타입의 TArray(배열 컨테이너) 생성 후 GetOverlappingActors 호출해서 오버래핑된 컴포넌트를 리턴
-    GetOverlappingActors(Actors);
-
-    /**int32 index = 0;
-    while(index < Actors.Num())                                                //Actors 원소가 0보다 클때(오버래핑된 경우) 오버래핑된 액터 이름 출력
+    
+    AActor* Actor = GetAcceptableActor();
+    if (Actor != nullptr)
     {
-        FString ActorName = Actors[index]->GetActorNameOrLabel();
-        UE_LOG(LogTemp, Display, TEXT("Overlapping: %s"), *ActorName);
-        ++index;
-    }**/
-
-    /**for (int32 i = 0; i < Actors.Num(); i++)
-    {
-        FString ActorName = Actors[i]->GetActorNameOrLabel();
-        UE_LOG(LogTemp, Display, TEXT("Overlapping: %s"), *ActorName);
-    }**/
-
-    for (AActor* Actor : Actors)
-    {
-        if (Actor->ActorHasTag(TagName))
+        UPrimitiveComponent* Component = Cast<UPrimitiveComponent>(Actor->GetRootComponent());
+        if (Component != nullptr)
         {
-            UE_LOG(LogTemp, Display, TEXT("Unlocking"));
+            Component->SetSimulatePhysics(false);   
         }
-        
+        Actor->AttachToComponent(this, FAttachmentTransformRules::KeepWorldTransform);
+        Mover->SetShouldMove(true);
     }
-    
+    else
+    {
+        Mover->SetShouldMove(false);
+    }
 
-    
+
+}
+
+void UTriggerComponent::SetMover(UMover* NewMover)
+{
+    Mover = NewMover;
 }
 
 AActor* UTriggerComponent::GetAcceptableActor() const
@@ -58,11 +53,15 @@ AActor* UTriggerComponent::GetAcceptableActor() const
     TArray<AActor*> Actors;                                             //AActor 타입의 TArray(배열 컨테이너) 생성 후 GetOverlappingActors 호출해서 오버래핑된 컴포넌트를 리턴
     GetOverlappingActors(Actors);
     for (AActor* Actor : Actors)
-    {
-        if (Actor->ActorHasTag(TagName))
+    {   
+        bool HasAcceptableTag = Actor->ActorHasTag(TagName);
+        bool IsGrabbed = Actor->ActorHasTag("Grabbed");
+        if (HasAcceptableTag && !IsGrabbed)
         {
-            UE_LOG(LogTemp, Display, TEXT("Unlocking"));
+            return Actor;
         }
         
     }
+
+    return nullptr;
 }
